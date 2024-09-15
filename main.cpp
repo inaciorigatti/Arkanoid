@@ -2,77 +2,44 @@
 // A musica tem que estar na mesma pasta do project e em .wav
 // A musica esta no github, juntamente com a musica
 
-#include <iostream>
-#include <windows.h>
-#include <locale.h> // Portugues PT-BR Caracteres
+#include <iostream> // Cria e gerencia inputs e outputs
+#include <windows.h> // Configurações windows, criar janelas, etc
 #include <conio.h> // Para controle das teclas
-#include <cstdlib> // Para rand() e srand()
 #include <ctime>   // Para time()
 #include <mmsystem.h> // Para musica
 
 using namespace std;
 
 //Declara as funcoes que existem no programa
-void menu();
+void menu();                  // Função que exibe o menu do jogo
 int verificador(int escolha); // Função que valida as opções
 int escolhaMenu(int escolha); // Função que trata as opções do menu
 void comoJogar();             // Função que explica como jogar o jogo
 void sobreJogo();             // Função que explica o que é o jogo
-void _SetColor(int cor);
-void _ResetColor();
-void _ReposicionarCursor();
-bool verificarColisaoBloco(int bolaX, int bolaY, int blocoX, int blocoY, int& direcaoX, int& direcaoY, int& pontuacao, int m[][15]);
-void apagarTela();
-void jogar();
-void jogoJogar();
+void _SetColor(int cor);      // Função que configura como é exibido um caracter no console
+void _ResetColor();           // Função que reseta a cor para o branco
+void _ReposicionarCursor();   // Função que reposiciona o cursor para as posições 0 no eixo X e 0 no eixo Y do console
+bool verificarColisaoBloco(int bolaX, int bolaY, int blocoX, int blocoY, int& direcaoX, int& direcaoY, int& pontuacao, int m[][15]); // Função que verifica a colisão dos blocos quando atingidos pela bolinha
+void apagarTela();            // Função que contém um comando para apagar os elementos no console
+void jogar();                 // Função que contém um texto auxiliar que ajuda o usuario a identificar que o jogo está iniciando
+void jogoJogar();             // Função que contém o jogo em si
+int vida = 3;                 // Variável vida do jogador
 
-int vida = 3;
 
-void menu() {
-    PlaySound(NULL, 0, 0); // para de tocar a musica
-    cout << "-= Arkanoid =-" << endl;
-    cout << "1. Jogar" << endl;
-    cout << "2. Como jogar" << endl;
-    cout << "3. Sobre" << endl;
-    cout << "4. Sair" << endl;
-    cout << "Digite sua escolha: ";
-
-    int escolha;
-    cin >> escolha;
-    verificador(escolha);
+// Função que configura como é exibido um caracter no console
+void _SetColor(int cor) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), cor);
 }
 
-void comoJogar() {
-    system("cls");
-    cout << "\nComo Jogar Arkanoid: \n";
-    cout << "1. Você controla uma plataforma horizontal (barra) na parte inferior da tela.\n";
-    cout << "2. O objetivo é rebater a bola para destruir todos os blocos na parte superior.\n";
-    cout << "3. Use as setas do teclado para mover a barra para a esquerda e direita.\n";
-    cout << "4. Se a bola cair sem ser rebatida, você perde uma vida.\n";
-    cout << "5. O jogo termina quando você destroi todos os blocos ou perde todas as vidas.\n";
-    cout << "6. Atenção aos power-ups que caem dos blocos destruidos, eles podem ajudar ou atrapalhar!\n" << endl;
-    menu();
+// Função que reseta a cor para o branco
+void _ResetColor() {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 }
 
-void sobreJogo() {
-    system("cls");
-    cout << "\nSobre Arkanoid:\n";
-    cout << "Arkanoid é um clássico jogo de arcade lançado em 1986 pela Taito.\n";
-    cout << "Ele é uma evolução do conceito do jogo Breakout, criado pela Atari nos anos 70.\n";
-    cout << "No jogo, você controla uma barra que se move lateralmente para rebater uma bola.\n";
-    cout << "Seu objetivo é destruir todos os blocos em cada nível, sem deixar a bola cair.\n";
-    cout << "Desenvolvido por: Inácio Radin Rigatti, Lucas de Amorim Coelho e Nilson Hoffmann Neto. Setembro/2024. \n" << endl;
-    menu();
-}
-
-// Função que valida a escolha do usuário
-int verificador(int escolha) {
-    if (escolha <= 0 || escolha > 4) {
-        cout << "Opção inválida, tente novamente: " << endl;
-        cin >> escolha;
-    }
-    system("cls");
-    return escolhaMenu(escolha); // Chama a função escolhaMenu com a escolha válida
+// Função que reposiciona o cursor para as posições 0 no eixo X e 0 no eixo Y do console
+void _ReposicionarCursor() {
+    COORD coord = { 0, 0 };
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
 // Função que processa a escolha do usuário
@@ -96,20 +63,17 @@ int escolhaMenu(int escolha) {
     return escolha;
 }
 
-
-void _SetColor(int cor) {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), cor);
+// Função que valida a escolha do usuário
+int verificador(int escolha) {
+    if (escolha <= 0 || escolha > 4) {
+        cout << "Opcao invalida, tente novamente: " << endl;
+        cin >> escolha;
+    }
+    apagarTela();
+    return escolhaMenu(escolha); // Chama a função escolhaMenu com a escolha válida
 }
 
-void _ResetColor() {
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
-}
-
-void _ReposicionarCursor() {
-    COORD coord = { 0, 0 };
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
-}
-
+// Função que verifica a colisão dos blocos quando atingidos pela bolinha
 bool verificarColisaoBloco(int bolaX, int bolaY, int blocoX, int blocoY, int& direcaoX, int& direcaoY, int& pontuacao, int m[][15]) {
     bool colidiu = false;
 
@@ -134,17 +98,61 @@ bool verificarColisaoBloco(int bolaX, int bolaY, int blocoX, int blocoY, int& di
     return colidiu;
 }
 
+// Função que contém um comando para apagar os elementos no console
 void apagarTela(){
     system("cls");
 }
 
+// Função que exibe o menu do jogo
+void menu() {
+    PlaySound(NULL, 0, 0); // para de tocar a musica
+    cout << "-= Arkanoid =-" << endl;
+    cout << "1. Jogar" << endl;
+    cout << "2. Como jogar" << endl;
+    cout << "3. Sobre" << endl;
+    cout << "4. Sair" << endl;
+    cout << "Digite sua escolha: ";
+
+    int escolha;
+    cin >> escolha;
+    verificador(escolha);
+}
+
+// Função que explica como jogar o jogo
+void comoJogar() {
+    apagarTela();
+    cout << "\nComo Jogar Arkanoid: \n";
+    cout << "1. Voce controla uma plataforma horizontal (barra) na parte inferior da tela.\n";
+    cout << "2. O objetivo eh rebater a bola para destruir todos os blocos na parte superior.\n";
+    cout << "3. Use as setas do teclado para mover a barra para a esquerda e direita.\n";
+    cout << "4. Se a bola cair sem ser rebatida, voce perde uma vida.\n";
+    cout << "5. O jogo termina quando voce destroi todos os blocos ou perde todas as vidas.\n";
+    cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=" << endl << endl << endl;
+    menu();
+}
+
+// Função que explica o que é o jogo
+void sobreJogo() {
+    apagarTela();
+    cout << "\nSobre Arkanoid:\n";
+    cout << "Arkanoid eh um classico jogo de arcade lançado em 1986 pela Taito.\n";
+    cout << "Ele eh uma evolucao do conceito do jogo Breakout, criado pela Atari nos anos 70.\n";
+    cout << "No jogo, voce controla uma barra que se move lateralmente para rebater uma bola.\n";
+    cout << "Seu objetivo eh destruir todos os blocos em cada nível, sem deixar a bola cair.\n";
+    cout << "Desenvolvido por: Inacio Radin Rigatti, Lucas de Amorim Coelho e Nilson Hoffmann Neto. Setembro/2024. \n";
+    cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=" << endl << endl << endl;
+    menu();
+}
+
+// Função que contém um texto auxiliar que ajuda o usuario a identificar que o jogo está iniciando
 void jogar() {
     cout << "Iniciando o jogo Arkanoid... Bom Jogo!" << endl;
     Sleep(1200);
-    system("cls");
+    apagarTela();
     jogoJogar();
 }
 
+// Função que contém o jogo em si
 void jogoJogar() {
 
     PlaySound(TEXT("JOGO_MUSICA.wav"), NULL, SND_ASYNC);
@@ -180,7 +188,7 @@ void jogoJogar() {
 
     // Posição inicial do paddle e da bolinha
     int x = 12, y = 6;
-    int bolaX = 11, bolaY = 11;
+    int bolaX = 8, bolaY = 8;
     int dirX = 1, dirY = 1;
     char tecla;
     int pontuacao = 0;
@@ -188,11 +196,11 @@ void jogoJogar() {
     // Inicializa a semente para números aleatórios
     srand(static_cast<unsigned>(time(0)));
 
-    while (pontuacao < 5800) {  //alterado
+    while (pontuacao < 5800) {  // Enquanto a pontuação não atingir o máximo (todos os blocos quebrados), o jogo vai continuar
 
 
 
-        _ReposicionarCursor();
+        _ReposicionarCursor(); // Resetar posição
 
 
         // Verifica colisão da bolinha com o paddle antes de atualizar a posição
@@ -275,7 +283,7 @@ void jogoJogar() {
 
         // Exibe a pontuação
         _ResetColor();
-        cout << "Pontuação: " << pontuacao << endl;
+        cout << "Pontos: " << pontuacao << endl;
         cout << "Vidas: "<< vida << endl;
           // Executa os movimentos do paddle
 
@@ -296,11 +304,11 @@ void jogoJogar() {
         }
 
         if(pontuacao == 5800){
-            system("cls");
+            apagarTela();
             cout<<"Ganhou!!!";
             vida = 3;
             Sleep(3000);
-            system("cls");
+            apagarTela();
             menu();
         }
 
@@ -309,25 +317,21 @@ void jogoJogar() {
             vida = vida - 1;
         }
 
-        if(vida < 1){
-            system("cls");
+        if(vida == 0){
+            apagarTela();
             cout<<"Perdeu!!!";
             vida = 3;
             Sleep(3000);
-            system("cls");
+            apagarTela();
             menu();
         }
-
-
-
-
         // Adiciona uma pausa para controle do jogo
-        Sleep(55); // 55 milissegundos
+        Sleep(75); // 75 milissegundos
     }
 
 
     apagarTela();
-    cout << " você ganhou o jogo. " << endl;
+    cout << " Voce ganhou o jogo. " << endl;
     Sleep(2000);
     menu();
 
