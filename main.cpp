@@ -42,10 +42,10 @@ int minutos = 0;              // Variável de minutos
 int segundos = 0;              // Variável de segundos
 bool modoJogoAutomatico = false; // Variável para controlar o modo automático
 int qtdBlocosQuebrados = 0;     // Qtde de blocos quebrados
-bool mostrarInformacoes = false;
+
 
 // Variável para controlar a velocidade do paddle
-int velocidadePaddle = 1;
+int velocidadePaddle = 2;
 
 const int TAM = 16;         // Tamanho da matriz do mapa
 int paddleSizeInicial = 4;  // Tamanho inicial do paddle
@@ -64,6 +64,8 @@ int itemEffect = -1; // Tipo do efeito especial (inicialmente nenhum)
 int tempoItem = 0; // Variável de controle para o tempo de queda do item
 const int velocidadeItem = 3; // Controla a velocidade do item (quanto maior, mais lento)
 bool itemAtivo = false; // Se o item está em queda ou não
+int fase = 1;
+int faseInicial = 1;
 
 int ItemAumentoPaddle = 0;
 int ItemDiminuiPaddle = 0;
@@ -122,23 +124,57 @@ void salvarInfo(int pontuacao) {
     apagarTela();  // Chama uma função para limpar a tela
 }
 
-// Função criada para ler as informações do arquivo de ranking e exibi-las
+bool compararPontuacao(const Jogador& a, const Jogador& b) {
+    return a.pontuacao > b.pontuacao;
+}
+
 void lerInfo() {
     fstream f;
-    f.open("ranking.dat", ios::in);  // Abre o arquivo "ranking.dat" no modo de leitura (ios::in)
+    // Abre o arquivo "ranking.dat" no modo de leitura ios::in
+    f.open("ranking.dat", ios::in);
 
-    if (f.is_open()) {  // Verifica se o arquivo foi aberto
-        string linha;
+    // Verifica se o arquivo foi aberto corretamente
+    if (f.is_open()) {
+        string linha;  // Variável para armazenar cada linha lida do arquivo
+        vector<Jogador> informacoes;  // Vetor para armazenar a struct Jogador
+
         // Lê o arquivo linha por linha até o final
-        while (getline(f, linha)) { //getline é usada para ler uma linha completa de um arquivo ; f é o arquivo ; getline é usada para ler uma linha completa de um arquivo
-            cout << linha << endl;
+        while (getline(f, linha)) { // getline lê uma linha de texto ou parte de uma string até um delimitador.
+            stringstream ss(linha);  // Cria uma stringstream para processar a linha lida
+            //stringstream trata uma string como um fluxo de dados, permitindo operações como conversão e extração de valores.
+            Jogador jogador;  // Cria uma instância da struct Jogador para armazenar as informações da linha
+
+            // Lê os valores da linha, separando por ponto e vírgula ';'
+            getline(ss, jogador.nome, ';');
+            ss >> jogador.dificuldade; ss.ignore();  // Lê  e ignora o próximo delimitador ';'
+            ss >> jogador.pontuacao; ss.ignore();    // Lê e ignora o delimitador
+            ss >> jogador.vidas; ss.ignore();
+            ss >> jogador.pontosDuplos; ss.ignore();
+            ss >> jogador.inversosPontos; ss.ignore();
+            ss >> jogador.pontoExt; ss.ignore();
+            ss >> jogador.modPaddle; ss.ignore();
+            ss >> jogador.tempo; ss.ignore();
+            ss >> jogador.data; ss.ignore();
+
+            // Armazena a instância do jogador preenchida no vetor
+            informacoes.push_back(jogador); //push back adicionar um novo elemento ao final de um vetor
         }
-        f.close();  // Fecha o arquivo após a leitura
+        f.close();
+
+        // Ordena os jogadores no vetor pela pontuação, do maior para o menor
+        sort(informacoes.begin(), informacoes.end(), compararPontuacao);
+
+        // Exibe as informações dos jogadores já ordenados
+        for (const auto& jogador : informacoes) { // range-based loop
+            cout << jogador.nome << ";\t\t" << jogador.dificuldade << ";\t" << jogador.pontuacao << ";\t"
+                 << jogador.vidas << ";\t" << jogador.pontosDuplos << ";\t" << jogador.inversosPontos << ";\t"
+                 << jogador.pontoExt << ";\t" << jogador.modPaddle << ";\t" << jogador.tempo << ";\t" << jogador.data << endl;
+        }
     } else {
-        cout << "Erro ao abrir o arquivo" << endl;  // Exibe uma mensagem de erro se o arquivo não for aberto
+        cout << "Erro ao abrir o arquivo" << endl;
     }
 
-    cout << endl;  // Adiciona uma linha em branco
+    cout << endl;
     menu();
 }
 
@@ -168,6 +204,11 @@ void resetarEfeitos() {
     paddleSize = paddleSizeInicial; // Reseta o tamanho do paddle para o tamanho inicial
     vidaextra = vidaextraInicial;
     vida = vidainicial;
+    // Se precisar de mais resets, adicione aqui, como pontuacao ou vidaExtra
+    multiplicadorAtivo = false;
+}
+void resetarFase() {
+    fase = faseInicial;
     // Se precisar de mais resets, adicione aqui, como pontuacao ou vidaExtra
 }
 
@@ -313,15 +354,18 @@ void exibirMapa(int m[][TAM]) {
                 }
             }
         }
+         _ResetColor();
         cout << endl;
     }
 }
 
 void moverPaddleAutomatico() {
     // Lógica para mover o paddle automaticamente
-    if (bolaY > y + paddleSize / 2) {
+
+    // Verificando bolinha com o centro do paddle
+    if (bolaY > y + paddleSize / 2) { // Se a bolinha estiver atrás do centro do paddle, o paddle precisa corrigir a direção
         y++;
-    } else if (bolaY < y + paddleSize / 2) {
+    } else if (bolaY < y + paddleSize / 2) { // Se a bolinha estiver a frente do centro do paddle, o paddle precisa corrigir a direção
         y--;
     }
     // Limitar os movimentos do paddle
@@ -340,10 +384,10 @@ void moverPaddle(int &velocidadePaddle) {
         if (_kbhit()) {
             char tecla = _getch();
             if (tecla == 'a' && y > 1) { // Mover para a esquerda
-                y--;
+                y --;
             }
             else if (tecla == 'd' && y < TAM - paddleSize - 1) { // Mover para a direita
-                y++;
+                y ++;
             }
         }
     }
@@ -365,7 +409,7 @@ void exibirHUD(int &pontuacao, int &vida) {
 }
 
 // Nova função para mover a bola e verificar colisões
-void SistemaJogo(int m[][TAM], int& pontuacao, int& paddleSize, int& vidaextra) {
+void SistemaJogo(int m[][TAM], int& pontuacao, int& paddleSize, int& vidaextra, bool& multiplicadorAtivo) {
     _ReposicionarCursor(); // Resetar posição
 
     // Verifica colisão da bolinha com o paddle
@@ -396,7 +440,6 @@ void SistemaJogo(int m[][TAM], int& pontuacao, int& paddleSize, int& vidaextra) 
         m[bolaX][bolaY] = 0;
         qtdBlocosQuebrados += 1;
         PlaySound("QUEBRA.wav", NULL, SND_ASYNC);
-
         // Aplica multiplicador na pontuação dos blocos normais
         pontuacao += 100 * (multiplicadorAtivo ? 2 : 1); // Dobra a pontuação se o multiplicador estiver ativo
         dirY = -dirY;
@@ -420,7 +463,6 @@ void SistemaJogo(int m[][TAM], int& pontuacao, int& paddleSize, int& vidaextra) 
             itemY = bolaY;
             itemEffect = rand() % 6; // Tipo de efeito aleatório
             itemAtivo = true;
-
             dirY = -dirY;
         } else {
             dirY = -dirY;
@@ -495,9 +537,17 @@ void exibirTab(int &pontuacao, int &ItensPegos, int &qtdBlocosQuebrados, int &se
     cout << "Informacoes do jogo ate o momento" << endl << endl;
     cout << "Pontuacao: " << pontuacao << endl;
     cout << "Itens pegos: " << ItensPegos << endl;
+    cout << "Você está na fase: " << fase << endl;
     cout << "Blocos quebrados: " << qtdBlocosQuebrados << endl;
-    cout << "Tempo jogado (em segundos): " << segundos << endl;
+    cout << "Tempo jogado (em segundos): " << (horas*3600) + (minutos*60) + segundos << endl;
+    cout << "Itens de aumentar paddle: " << ItemAumentoPaddle << endl;
+    cout << "Itens de diminuir paddle: " << ItemDiminuiPaddle << endl;
+    cout << "Itens de  Pontos extras: " << PontosExtras << endl;
+    cout << "Itens de Multiplicador de  pontos: " << Multiplicador << endl;
+    cout << "Itens de aumentar vida: " << Itemvida << endl;
+    cout << "Itens de inversor pontuação: " << ItenInversor << endl;
     cout << "Pressione qualquer tecla para voltar ao jogo..." << endl;
+
     _getch(); // Aguarda uma tecla ser pressionada
     apagarTela();
 }
@@ -505,7 +555,8 @@ void exibirTab(int &pontuacao, int &ItensPegos, int &qtdBlocosQuebrados, int &se
 // Função que exibe o menu do jogo
 void menu() {
 
-    PlaySound(NULL, 0, 0); //Se voltar para o menu ele para de tocar a musica
+    // Comando para executar o arquivo da musica contido na pasta do jogo
+    PlaySound(NULL, 0, 0);
 
     cout << "-= Arkanoid =-" << endl;
     cout << "1. Jogar"       << endl;
@@ -523,9 +574,10 @@ void menu() {
 
 // Função que valida a escolha do usuário
 int verificador(int escolha) {
-    while (escolha <= 0 || escolha > 6) {
+    if (escolha <= 0 || escolha > 6) {
         cout << "Opcao invalida, tente novamente: " << endl;
         cin >> escolha;
+        return verificador(escolha); // Chamada recursiva para corrigir a escolha
     }
     apagarTela();
     return escolhaMenu(escolha); // Chama a função escolhaMenu com a escolha válida
@@ -544,10 +596,10 @@ int escolhaMenu(int escolha) {
             lerInfo();
             break;
         case 4:
-            sobreJogo();
+            comoJogar();
             break;
         case 5:
-            comoJogar();
+            sobreJogo();
             break;
         case 6:
             cout << "Saindo do jogo..." << endl;
@@ -560,6 +612,8 @@ int escolhaMenu(int escolha) {
 }
 
 void dificuldadeEscolher(){
+    // Comando para executar o arquivo da musica contido na pasta do jogo
+
     cout<<"Escolha a dificuldade: "<<endl<<endl;
     cout<<"Dificuldade selecionada por padrao: Medio."<<endl<<endl;
     cout<<"Selecione uma opcao: "<<endl;
@@ -618,7 +672,7 @@ void comoJogar() {
     cout << "\nComo Jogar Arkanoid: \n";
     cout << "1. Voce controla uma plataforma horizontal (barra) na parte inferior da tela.\n";
     cout << "2. O objetivo eh rebater a bola para destruir todos os blocos na parte superior.\n";
-    cout << "3. Use as setas (<) e (>) ou (A) e (D) do teclado para mover a barra para a esquerda e direita respectivamente.\n";
+    cout << "3. Use a tecla (A) e (D) do teclado para mover a barra para a esquerda e direita respectivamente.\n";
     cout << "4. Se a bola sair do alcance do paddle (cair abaixo dele) e encostar na parte inferior do mapa, voce perde uma vida.\n";
     cout << "5. O jogo termina quando voce destroi todos os blocos ou perde todas as vidas (3 vidas).\n";
     cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=" << endl << endl << endl;
@@ -629,15 +683,19 @@ void comoJogar() {
 void sobreJogo() {
     apagarTela();
     cout << "\nSobre Arkanoid:\n";
-    cout << "Arkanoid eh um classico jogo de arcade lançado em 1986 pela Taito.\n";
+    cout << "Arkanoid eh um classico jogo de arcade lancado em 1986 pela Taito.\n";
     cout << "Ele eh uma evolucao do conceito do jogo Breakout, criado pela Atari nos anos 70.\n";
     cout << "No jogo, voce controla uma barra que se move lateralmente para rebater uma bola.\n";
     cout << "Seu objetivo eh destruir todos os blocos em cada nivel, sem deixar a bola encostar na parte inferior do mapa.\n";
     cout << "Desenvolvido por: Inacio Radin Rigatti, Lucas de Amorim Coelho e Nilson Hoffmann Neto. Setembro/2024. \n" << endl << endl;
     cout << "Responsabilidades durante o desenvolvimento: " << endl << endl;
-    cout << "Inacio Radin Rigatti - Criacao do menu, funcionalidades tais como o sistema de vida, musica e organizacao do codigo." << endl;
-    cout << "Lucas de Amorim Coelho - Verificacao de contato com a parede, movimentacao da bola, direcao da bola e resolucao de bugs." << endl;
-    cout << "Nilson Hoffmann Neto - Cenario, colisao de bloco , personagem(Paddle) e resolucao bugs." << endl;
+    _SetColor(2);
+    cout << "Inacio Radin Rigatti -"<<endl<<"\t"<<"\t"<<"M1 - Criacao do menu, funcionalidades tais como o sistema de vida, musica e organizacao do codigo."<<endl<<"\t" <<"\t"<<"M2 - Otimizacao do jogo, design caprichado, permissao de continuar apos morrer, salvar em um arquivo, opcao de dificuldade, efeito de quebra."<<endl<<endl;
+    _SetColor(3);
+    cout << "Lucas de Amorim Coelho -"<<endl<<"\t"<<"\t"<<"M1 - Verificacao de contato com a parede, movimentacao da bola, direcao da bola e resolucao de bugs."<<endl<<"\t" <<"\t"<<"M2 - Tempo em tela, paddle nao apresenta delay, opcao explicando pontuacao, capacidade de ganhar sozinho."<<endl<<endl;
+    _SetColor(12);
+    cout << "Nilson Hoffmann Neto -"<<endl<<"\t"<<"\t"<<"M1 - Cenario, colisao de bloco, personagem(Paddle) e resolucao de bugs."<<endl<<"\t" <<"\t"<<"M2 - Jogo nao pisca ou desloca blocos mais, durabilidade dos blocos, blocos dispostos quebraveis de forma aleatoria, ter itens pegos, e bonus de itens especiais."<<endl;
+    _ResetColor();
     cout << "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=" << endl << endl << endl;
     menu();
 }
@@ -682,13 +740,15 @@ void jogar() {
             modoJogoAutomatico = true;
             apagarTela();
             cout << endl << endl << "Ativando IA NLI, prepare-se!!!" << endl;
+            // Comando para executar o arquivo da musica contido na pasta do jogo
+            PlaySound(("ATIVANDO_IA.wav"), NULL, SND_ASYNC);
             Sleep(1500);
             apagarTela();
             jogoJogar();
             break;
         case 2:
             apagarTela();
-            cout << endl << endl << "Sentimos muito que nao tenha selecionado nossa IA, esperamos que da proxima voce confie nela! Bom jogo!" << endl;
+            cout << endl << endl << "Sentimos muito que nao tenha selecionado nossa IA, esperamos que da proxima vez voce confie nela! Bom jogo!" << endl;
             Sleep(3000);
             apagarTela();
             jogoJogar();
@@ -699,9 +759,6 @@ void jogar() {
 // Função que contém o jogo em si
 void jogoJogar() {
 
-    // Comando para executar o arquivo da musica contido na pasta do jogo
-    //PlaySound(("JOGO_MUSICA.wav"), NULL, SND_ASYNC);
-
     // Configura o cursor para não piscar
     HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO cursorInfo;
@@ -710,8 +767,8 @@ void jogoJogar() {
     SetConsoleCursorInfo(out, &cursorInfo);
 
     int mapa[TAM][TAM]; // Inicializa o mapa
-    int fase = 1; // Começa na fase 1
     int pontuacao = 0;
+    int tecla;
 
     srand(time(0)); // Semente para números aleatórios
 
@@ -720,20 +777,20 @@ void jogoJogar() {
         while (fase <= 3) {
             exibirMapa(mapa); // Exibe a matriz com os blocos
             moverPaddle(velocidadePaddle);
-
-            // DAR UM JEITO DE INTEGRAR ESSA PARTE NO CODIGO POSTERIORMENTE, POIS ELA É O BOTÃO POPUP
-//            if (_kbhit()) {
-//                char tecla = _getch();
-//                if (tecla == '\t') { // Tecla TAB
-//                    exibirTab(pontuacao, ItensPegos, qtdBlocosQuebrados, segundos);
-//                }
-//            }
-            // DAR UM JEITO DE INTEGRAR ESSA PARTE NO CODIGO POSTERIORMENTE, POIS ELA É O BOTÃO POPUP
-
-
-            SistemaJogo(mapa,pontuacao,paddleSize,vida); // Move a bola e verifica colisões
+            // DAR UM JEITO DE ARRUMAR ESSE BOTAO PARA A VERSAO PADDLE MANUAL
+            if (_kbhit()) {
+                char tecla = _getch();
+                if (tecla == '\t') { // Tecla TAB
+                    exibirTab(pontuacao, ItensPegos, qtdBlocosQuebrados, segundos);
+                }
+            }
+            // DAR UM JEITO DE ARRUMAR ESSE BOTAO PARA A VERSAO PADDLE MANUAL
+            SistemaJogo(mapa,pontuacao,paddleSize,vida,multiplicadorAtivo); // Move a bola e verifica colisões
             if (todosBlocosQuebrados(mapa)) { // Verifica se todos os blocos foram quebrados
-                cout << "Você completou a fase " << fase << "!" << endl;
+                // Define a posição para o PopUp
+                COORD faseCoord = { 21, 0 };
+                SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), faseCoord);
+                cout << "Voce completou a fase " << fase << "!" << endl;
                 fase++; // Avança para a próxima fase
                 resetarEfeitos();
                 break; // Sai do loop da fase atual
@@ -768,14 +825,17 @@ void jogoJogar() {
     salvarTempoFinal();
     resetarEfeitos();
     cout<<"O jogador venceu, parabens!!";
+    resetarFase();
     vida = 3;
     Sleep(3000);
     apagarTela();
     salvarInfo(pontuacao);
+    _ResetColor();
     menu();
     }
 
 int main() {
     menu();
-    return 0; // Retorna 0 ao final do programa
+    return 0;
 }
+
